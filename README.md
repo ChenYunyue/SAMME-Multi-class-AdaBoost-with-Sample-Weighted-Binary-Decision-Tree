@@ -6,6 +6,8 @@ Reference:
 3. https://github.com/gengjia0214/Python-Multiclass-AdaBoost-SAMME
 4. https://github.com/lucksd356/DecisionTrees
 
+SAMME and decision tree can work independently.
+
 **Todo**: Adapt the binary decision tree to numerical values.
 
-*Current binary decision tree can only deal with 0-1 valued attributes.*
+*Attribute values should be coded as 0-1 value.*
