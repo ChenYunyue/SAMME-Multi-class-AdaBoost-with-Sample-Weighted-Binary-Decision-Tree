@@ -5,43 +5,85 @@ iris = datasets.load_iris()
 X = iris.data[1:5]
 y = iris.target
 
-print(X)
+CLASS_NUM = 4
 
-
-
-"""Sample weighted numerical threshold binary decision tree
+"""sample weighted numerical threshold binary decision tree classifier
+Input:
+    - Data:
+        - batch data for training of shape (n samples * d dimensions)
+        - single or batch data of shape (d dimensions) or (n samples * d dimensions) for prediction
+    - Target: array of labels of shape (n samples)
+        - NB: support multi-class, but classes must be coded as {0, 1, 2, ...}
+Output:
+    - Prediction: predicted label array of shape (n samples)
+Methods:
+    - train: build a decision tree from training data and target
+    - predict:
+        - predict data by the trained decision tree
+        - the decision tree must be trained first
 """
+
 class TreeNode:
-    """Decision Tree Node"""
-    def __init__(self, attribute=-1, leftBranch=None, rightBranch=None, result=None):
+    """threshold decision tree node"""
+    def __init__(self, attribute=None, leftBranch=None, rightBranch=None, result=None):
         self.attribute = attribute
+        self.threshold = None
         self.leftBranch = leftBranch
         self.rightBranch = rightBranch
         self.result = result
     
     def predict(self, data):
-        """Do no support batch input"""
-        if self.result != None:
-            return self.result
-        else:
-            newData = np.delete(data, self.attribute)
-            if data[self.attribute] == 0:
-                return self.leftBranch.predict(newData)
+        """support batch input"""
+        def runTree(data):
+            if self.result != None:
+                return self.result
             else:
-                return self.rightBranch.predict(newData)
+                newData = np.delete(data, self.attribute)
+                if data[self.attribute] == 0:
+                    return self.leftBranch.predict(newData)
+                else:
+                    return self.rightBranch.predict(newData)
 
+        data = np.array(data)
+        # single input
+        if np.size(data.shape) == 1:
+            return runTree(data)
+        # batch inputs
+        else:
+            batchSize = data.shape[0]
+            results = np.zeros(batchSize)
+            for ind, sample in enumerate(data):
+                results[ind] = runTree(sample)
+            return results
+        
+# class DecisionTreeClassifier:
+#     """sample weighted numerical threshold binary decision tree classifier"""
+#     def __init__(self):
+#         self.root
 
-def dataSplit(data, target, dataWeights, attribute):
+def dataSplit(data, target, dataWeights, attribute, threshold):
     """Split the data, target, and weights by attribute"""
-    zeroData = data[data[:,attribute]==0]
-    zeroData = np.delete(zeroData, attribute, 1)
-    zeroTarget = target[data[:,attribute]==0]
-    zeroDataWeights = dataWeights[data[:,attribute]==0]
-    oneData = data[data[:,attribute]==1]
-    oneData = np.delete(oneData, attribute, 1)
-    oneTarget = target[data[:, attribute]==1]
-    oneDataWeights = dataWeights[data[:,attribute]==1]
-    return (zeroData, zeroTarget, zeroDataWeights, oneData, oneTarget, oneDataWeights)
+    leftData = data[data[:, attribute] <= threshold]
+    leftData = np.delete(leftData, attribute, 1)
+    leftTarget = target[data[:, attribute] <= threshold]
+    leftDataWeights = dataWeights[data[:, attribute] <= threshold]
+
+    rightData = data[data[:, attribute] > threshold]
+    rightData = np.delete(rightData, attribute, 1)
+    rightTarget = target[data[:, attribute] > threshold]
+    rightDataWeights = dataWeights[data[:, attribute] > threshold]
+    
+    return (leftData, leftTarget, leftDataWeights, rightData, rightTarget, rightDataWeights)
+
+    # zeroData = data[data[:,attribute]==0]
+    # zeroData = np.delete(zeroData, attribute, 1)
+    # zeroTarget = target[data[:,attribute]==0]
+    # zeroDataWeights = dataWeights[data[:,attribute]==0]
+    # oneData = data[data[:,attribute]==1]
+    # oneData = np.delete(oneData, attribute, 1)
+    # oneTarget = target[data[:, attribute]==1]
+    # oneDataWeights = dataWeights[data[:,attribute]==1]
+    # return (zeroData, zeroTarget, zeroDataWeights, oneData, oneTarget, oneDataWeights)
 
 
 def gini(target, dataWeights):
@@ -52,7 +94,7 @@ def gini(target, dataWeights):
     pList = np.zeros(CLASS_NUM)
     # weighted sum
     for i in range(target.shape[0]):
-        pList[target[i]] = pList[target[i]] + dataWeights[i]
+        pList[target[i]] += dataWeights[i]
     # normalize probability
     weightSum = np.sum(dataWeights)
     pList = pList / weightSum
@@ -62,11 +104,11 @@ def gini(target, dataWeights):
 
 def pluralityValue(target, dataWeights):
     """Majority vote"""
-    results = np.zeros(CLASS_NUM)
+    votes = np.zeros(CLASS_NUM)
     # vote based on weights
     for i in range(target.shape[0]):
-        results[target[i]] = results[target[i]] + dataWeights[i]
-    majority = results.argmax()
+        votes[target[i]] += dataWeights[i]
+    majority = np.argmax(votes)
     return majority
 
 
