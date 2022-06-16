@@ -1,12 +1,10 @@
 """Multi-class AdaBoost Classifier (SAMME) with sample weighted binary decision tree
-When classifing, all the attribute values are 0 or 1!
 """
 
 import math
 import copy
 import numpy as np
-
-CLASS_NUM = 4
+from myDecisionTree import MyDecisionTreeClassifier
 
 class SAMMEClassifier:
     """
@@ -16,19 +14,11 @@ class SAMMEClassifier:
     def __init__(self, weakLearnerNums=50):
         self.data = []
         self.target = []
+        self.classNum = None
         self.featureNums = 0
         self.datasetSize = 0
         self.dataWeights = []
         self.weakLearnerNums = weakLearnerNums
-        self.learnerAlphas = []
-        self.weakLearners = []
-
-    def reset(self):
-        self.data = []
-        self.target = []
-        self.featureNums = 0
-        self.datasetSize = 0
-        self.dataWeights = []
         self.learnerAlphas = []
         self.weakLearners = []
     
@@ -36,6 +26,7 @@ class SAMMEClassifier:
         """Train Adaboost"""
         self.data = np.array(data)
         self.target = np.array(target)
+        self.classNum = np.unique(target).shape[0]
         self.datasetSize = self.data.shape[0]
         self.featureNums = self.data.shape[1]
         self.dataWeights = np.array([1/self.datasetSize for i in range(self.datasetSize)])
@@ -44,7 +35,8 @@ class SAMMEClassifier:
         # Train the weak learners one by one according to SAMME
         for m in range(self.weakLearnerNums):
             # Train a weak classifier (decision tree)
-            tree = buildDecisionTree(self.data, self.target, parentTarget=self.target, dataWeights=self.dataWeights, parentWeights=self.dataWeights, maxDepth=2)
+            tree = MyDecisionTreeClassifier()
+            tree.train(self.data, self.target, dataWeights=self.dataWeights, maxDepth=2)
             self.weakLearners[m] = copy.deepcopy(tree)
             # Compute weighted error rate
             predicts = np.zeros(self.datasetSize)
@@ -57,7 +49,7 @@ class SAMMEClassifier:
                     errors = errors + self.dataWeights[i]
             err = errors / weightSum
             # Class number K = 4, compute alpha
-            self.learnerAlphas[m] = max(0, math.log((1 - err) / (err + 1e-6))) + math.log(CLASS_NUM - 1)
+            self.learnerAlphas[m] = max(0, math.log((1 - err) / (err + 1e-6))) + math.log(self.classNum - 1)
             # Update data weights
             for i in range(self.datasetSize):
                 if predicts[i] != target[i]:
@@ -66,7 +58,7 @@ class SAMMEClassifier:
             weightSum = np.sum(self.dataWeights)
             self.dataWeights = self.dataWeights / weightSum
 
-    def predict(self, data, legal=None):
+    def predict(self, data):
         """Make prediction by weak classifiers"""
         predicts = np.zeros(4)
         for m in range(self.weakLearnerNums):
