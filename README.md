@@ -8,6 +8,19 @@ Reference:
 
 SAMME and decision tree can work independently.
 
-**Todo**: Adapt the binary decision tree to numerical values.
+## Numerical Sample Weighted Binary Decision Tree
 
-*Attribute values should be coded as 0-1 value.*
+* Input:
+  * Data:
+    * Batch data for training of shape `(n samples, d dimensions)`;
+    * Single or batch data of shape `(d dimensions)` or `(n samples, d dimensions)` for prediction.
+  * Target:
+    * Array of labels of shape `(n samples)`;
+    * *NB: Support multi-class, but class labels must be coded as* `{0,1,2,...}`.
+* Output:
+  * Prediction: Predicted label array of shape `(n samples)`.
+* Methods:
+  * `train()`: Build a decision tree from training data and target.
+  * `predict()`:
+    * Predict data by the trained decision tree;
+    * *NB: The decision tree must be trained first.*
